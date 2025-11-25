@@ -11,8 +11,7 @@ import type { Station, MatLayout } from '../types';
 import { Button, MatPreview } from '../components';
 import { StationSelector } from '../components/StationSelector';
 import { LayoutPicker } from '../components/LayoutPicker';
-
-const API_BASE = '/api';
+import { API_BASE } from '../lib/config';
 
 export function GeneratePage() {
   const [selectedStationId, setSelectedStationId] = useState<string>('');

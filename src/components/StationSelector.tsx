@@ -8,6 +8,7 @@
 import { useState, useEffect } from 'react';
 import type { Station } from '../types';
 import { Select } from './Select';
+import { API_BASE } from '../lib/config';
 
 export interface StationSelectorProps {
   /** Currently selected station ID */
@@ -23,8 +24,6 @@ export interface StationSelectorProps {
   /** Additional CSS classes */
   className?: string;
 }
-
-const API_BASE = '/api';
 
 export function StationSelector({
   value,

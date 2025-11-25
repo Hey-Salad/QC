@@ -10,8 +10,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import type { Station, DetectionLogEntry, DetectionRules, DetectionResult, ExpectedItem } from '../types';
 import type { ChecklistItemResult } from '../lib/checklist';
 import { Button, AlertBadge, CameraFeed, Checklist, DetectionLog } from '../components';
-
-const API_BASE = '/api';
+import { API_BASE } from '../lib/config';
 
 export interface StationDashboardPageProps {
   stationId?: string;

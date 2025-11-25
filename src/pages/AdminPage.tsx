@@ -15,9 +15,7 @@ import {
   Select,
 } from '../components';
 import { generateMatPDF, generateMatFilename } from '../lib/mat-generator';
-
-// API base URL - in production this would be configured via environment
-const API_BASE = '/api';
+import { API_BASE } from '../lib/config';
 
 interface DeleteConfirmState {
   isOpen: boolean;

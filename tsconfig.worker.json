@@ -19,5 +19,5 @@
     }
   },
   "include": ["src/worker.ts", "src/lib/**/*.ts", "src/types/**/*.ts"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts"]
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts", "src/lib/config.ts"]
 }

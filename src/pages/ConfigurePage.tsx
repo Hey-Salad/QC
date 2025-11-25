@@ -12,8 +12,7 @@ import { Button } from '../components/Button';
 import { ExpectedItemsList } from '../components/ExpectedItemsList';
 import { ThresholdSlider } from '../components/ThresholdSlider';
 import { AlertConfig } from '../components/AlertConfig';
-
-const API_BASE = '/api';
+import { API_BASE } from '../lib/config';
 
 export interface ConfigurePageProps {
   stationId?: string;
