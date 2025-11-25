@@ -1,0 +1,41 @@
+# HeySalad QC - Cloudflare Workers Configuration
+name = "heysalad-qc"
+main = "src/worker.ts"
+compatibility_date = "2024-01-01"
+
+# Build configuration for TypeScript
+[build]
+command = "npm run build:worker"
+
+# Development settings
+[dev]
+port = 8787
+local_protocol = "http"
+
+# D1 Database binding
+[[d1_databases]]
+binding = "DB"
+database_name = "heysalad-qc-db"
+database_id = "placeholder-id-replace-with-actual"
+
+# R2 Storage binding for PDF files
+[[r2_buckets]]
+binding = "STORAGE"
+bucket_name = "heysalad-qc-pdfs"
+
+# Environment variables
+[vars]
+ALLOWED_ORIGINS = "http://localhost:5173,https://qc.heysalad.app"
+
+# Production environment
+[env.production]
+vars = { ALLOWED_ORIGINS = "https://qc.heysalad.app" }
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "heysalad-qc-db"
+database_id = "placeholder-id-replace-with-actual"
+
+[[env.production.r2_buckets]]
+binding = "STORAGE"
+bucket_name = "heysalad-qc-pdfs"

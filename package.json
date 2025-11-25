@@ -1,0 +1,53 @@
+{
+  "name": "heysalad-qc",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:worker": "wrangler dev",
+    "build": "tsc -b && vite build",
+    "build:worker": "tsc -p tsconfig.worker.json",
+    "deploy": "npm run build && wrangler pages deploy dist",
+    "deploy:worker": "wrangler deploy",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "test": "vitest --run",
+    "test:watch": "vitest",
+    "db:migrate": "wrangler d1 migrations apply heysalad-qc-db",
+    "db:migrate:local": "wrangler d1 migrations apply heysalad-qc-db --local",
+    "db:seed": "npx tsx scripts/seed-data.ts"
+  },
+  "dependencies": {
+    "jspdf": "^3.0.4",
+    "qrcode": "^1.5.4",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.9.6"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20251125.0",
+    "@eslint/js": "^9.39.1",
+    "@tailwindcss/postcss": "^4.1.17",
+    "@types/node": "^24.10.1",
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^19.2.5",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "fast-check": "^4.3.0",
+    "globals": "^16.5.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.17",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.46.4",
+    "vite": "npm:rolldown-vite@7.2.5",
+    "vitest": "^4.0.14",
+    "wrangler": "^4.50.0"
+  },
+  "overrides": {
+    "vite": "npm:rolldown-vite@7.2.5"
+  }
+}

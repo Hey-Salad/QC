@@ -1,0 +1,231 @@
+# Implementation Plan
+
+- [ ] 1. Set up project structure and configuration
+  - [x] 1.1 Initialize Vite + React + TypeScript project with TailwindCSS
+    - Run `npm create vite@latest` with React TypeScript template
+    - Install and configure TailwindCSS with PostCSS
+    - Set up path aliases in tsconfig.json
+    - _Requirements: 6.1, 6.2_
+  - [x] 1.2 Configure Cloudflare Workers with wrangler
+    - Create wrangler.toml with D1 and R2 bindings
+    - Set up worker entry point at src/worker.ts
+    - Configure Pages deployment settings
+    - _Requirements: 7.1_
+  - [x] 1.3 Create D1 database schema and migrations
+    - Write SQL migration for stations, detection_rules, detection_logs tables
+    - Add indexes for performance
+    - _Requirements: 7.1, 7.2_
+  - [x] 1.4 Set up shared TypeScript types and interfaces
+    - Create types for Station, DetectionRules, DetectionResult, etc.
+    - Define API request/response types
+    - _Requirements: 8.1, 8.2, 8.4_
+
+- [x] 2. Implement core data validation and serialization
+  - [x] 2.1 Create validation utility functions
+    - Implement station input validation (name, type, location, description)
+    - Implement detection rules validation (confidence threshold 0.0-1.0)
+    - Implement UUID validation
+    - _Requirements: 4.2, 8.3_
+  - [x] 2.2 Write property test for confidence threshold validation
+    - **Property 6: Confidence Threshold Validation**
+    - **Validates: Requirements 4.2**
+  - [x] 2.3 Create serialization/deserialization utilities
+    - Implement JSON serialization for Station, DetectionRules, DetectionResult
+    - Handle null/optional fields correctly
+    - _Requirements: 8.1, 8.2, 8.4, 8.5_
+  - [x] 2.4 Write property test for data model serialization round-trip
+    - **Property 8: Data Model Serialization Round-Trip**
+    - **Validates: Requirements 8.5**
+  - [x] 2.5 Write property test for API request validation
+    - **Property 9: API Request Validation**
+    - **Validates: Requirements 8.3**
+
+- [x] 3. Implement Station API endpoints
+  - [x] 3.1 Create station repository with D1 database operations
+    - Implement create, read, update, delete operations
+    - Handle UUID generation and timestamp management
+    - _Requirements: 1.1, 1.3, 1.4, 7.2, 7.5_
+  - [x] 3.2 Write property test for station CRUD round-trip
+    - **Property 1: Station CRUD Round-Trip Consistency**
+    - **Validates: Requirements 1.1, 5.2**
+  - [x] 3.3 Write property test for station update persistence
+    - **Property 2: Station Update Persistence**
+    - **Validates: Requirements 1.3, 5.3**
+  - [x] 3.4 Write property test for station deletion completeness
+    - **Property 3: Station Deletion Completeness**
+    - **Validates: Requirements 1.4, 5.4**
+  - [x] 3.5 Write property test for timestamp invariants
+    - **Property 10: Timestamp Invariants**
+    - **Validates: Requirements 7.2, 7.5**
+  - [x] 3.6 Implement GET /api/stations endpoint
+    - Return JSON array of all stations
+    - _Requirements: 5.1_
+  - [x] 3.7 Implement POST /api/stations endpoint
+    - Validate input, create station, return 201 with created record
+    - _Requirements: 5.2_
+  - [x] 3.8 Implement GET /api/stations/{id} endpoint
+    - Return station by ID or 404 if not found
+    - _Requirements: 5.1_
+  - [x] 3.9 Implement PUT /api/stations/{id} endpoint
+    - Validate input, update station, return updated record
+    - _Requirements: 5.3_
+  - [x] 3.10 Implement DELETE /api/stations/{id} endpoint
+    - Delete station and associated rules, return 204
+    - _Requirements: 5.4_
+
+- [x] 4. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 5. Implement QR code and PDF mat generation
+  - [x] 5.1 Create QR code generation utility
+    - Use qrcode npm package to generate QR codes
+    - Encode station URL format: https://qc.heysalad.app/station/{station_id}
+    - _Requirements: 2.4_
+  - [x] 5.2 Write property test for QR code URL format
+    - **Property 4: QR Code URL Format Correctness**
+    - **Validates: Requirements 2.4**
+  - [x] 5.3 Create PDF mat generator with jspdf
+    - Implement A4 layout (210mm x 297mm)
+    - Add dashed detection boundary, HeySalad logo, station name
+    - Support 1x1, 2x1, 2x2 layout options
+    - _Requirements: 2.1, 2.2, 2.3, 2.6_
+  - [x] 5.4 Implement R2 storage integration for PDFs
+    - Upload generated PDFs to R2 bucket
+    - Return download URL
+    - _Requirements: 7.4_
+  - [x] 5.5 Implement POST /api/generate-mat endpoint
+    - Accept station_id and layout, generate PDF, return URL
+    - _Requirements: 5.5_
+
+- [x] 6. Implement detection logic and rules
+  - [x] 6.1 Create detection rules repository
+    - Implement CRUD for detection_rules table
+    - Handle JSON serialization for expected_items and alert_config
+    - _Requirements: 4.6_
+  - [x] 6.2 Implement checklist comparison logic
+    - Compare expected items vs detected items
+    - Mark items as found/missing based on presence
+    - Flag failures for missing required items
+    - _Requirements: 3.4, 4.3_
+  - [x] 6.3 Write property test for detection checklist correctness
+    - **Property 5: Detection Checklist Correctness**
+    - **Validates: Requirements 3.4, 4.3**
+  - [x] 6.4 Create detection log repository
+    - Implement create and query operations
+    - Filter by station_id with limit
+    - _Requirements: 3.5_
+  - [x] 6.5 Write property test for detection log filtering
+    - **Property 7: Detection Log Station Filtering**
+    - **Validates: Requirements 3.5, 5.7**
+  - [x] 6.6 Implement mock detection processor
+    - Generate mock detection results for testing
+    - Return DetectionResult with detected_objects, pass/fail status
+    - _Requirements: 3.6_
+  - [x] 6.7 Implement GET /api/stations/{id}/logs endpoint
+    - Return detection history for station (limit 20)
+    - _Requirements: 5.7_
+  - [x] 6.8 Implement GET /api/stations/{id}/rules endpoint
+    - Return detection rules for station
+    - _Requirements: 5.8_
+  - [x] 6.9 Implement PUT /api/stations/{id}/rules endpoint
+    - Update detection rules for station
+    - _Requirements: 5.8_
+  - [x] 6.10 Implement POST /api/detect endpoint
+    - Process mock detection, log result, return JSON
+    - _Requirements: 5.6_
+
+- [x] 7. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 8. Build React frontend components
+  - [x] 8.1 Create shared UI components
+    - Button, Input, Modal, Select components with TailwindCSS
+    - AlertBadge component for pass/fail/warning states
+    - _Requirements: 6.4_
+  - [x] 8.2 Create StationCard component
+    - Display station info with edit, delete, generate mat buttons
+    - _Requirements: 6.3_
+  - [x] 8.3 Create QRCodePreview component
+    - Render QR code preview using qrcode library
+    - _Requirements: 1.2_
+  - [x] 8.4 Create MatPreview component
+    - Live preview of A4 mat design with layout options
+    - _Requirements: 2.1, 2.2_
+
+- [x] 9. Build Admin page
+  - [x] 9.1 Create StationTable component
+    - Display stations in table with columns: name, type, created date, QR preview
+    - Include action buttons per row
+    - _Requirements: 1.2_
+  - [x] 9.2 Create StationForm component
+    - Form for creating/editing stations with name, type, location, description
+    - Validation feedback
+    - _Requirements: 1.1, 1.3_
+  - [x] 9.3 Implement Admin page with station CRUD
+    - List stations, create new, edit existing, delete with confirmation
+    - Bulk generate mats action
+    - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
+
+- [x] 10. Build Generate page
+  - [x] 10.1 Create StationSelector component
+    - Dropdown populated from /api/stations
+    - _Requirements: 2.1_
+  - [x] 10.2 Create LayoutPicker component
+    - Radio buttons for 1x1, 2x1, 2x2 layouts
+    - _Requirements: 2.1_
+  - [x] 10.3 Implement Generate page
+    - Station selection, layout picker, live mat preview, download button
+    - _Requirements: 2.1, 2.2, 2.3_
+
+- [x] 11. Build Station Dashboard page
+  - [x] 11.1 Create CameraFeed component
+    - 640x480 placeholder with detection overlay support
+    - _Requirements: 3.2, 3.3_
+  - [x] 11.2 Create Checklist component
+    - Display expected vs detected items with checkmarks/X marks
+    - Overall pass/fail status
+    - _Requirements: 3.4_
+  - [x] 11.3 Create DetectionLog component
+    - Table of last 20 detections with timestamps, thumbnails, status
+    - _Requirements: 3.5_
+  - [x] 11.4 Implement Station Dashboard page
+    - Station header, camera feed, checklist, detection log, manual scan button
+    - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6_
+
+- [x] 12. Build Configure page
+  - [x] 12.1 Create ExpectedItemsList component
+    - Add/remove expected items with required/optional toggle
+    - _Requirements: 4.1, 4.3_
+  - [x] 12.2 Create ThresholdSlider component
+    - Slider for confidence threshold 0.0-1.0
+    - _Requirements: 4.2_
+  - [x] 12.3 Create AlertConfig component
+    - Enable/disable alerts, email/Slack/SMS inputs
+    - _Requirements: 4.5_
+  - [x] 12.4 Implement Configure page
+    - Expected items, threshold, alerts, save button
+    - _Requirements: 4.1, 4.2, 4.3, 4.5, 4.6_
+
+- [x] 13. Set up routing and layout
+  - [x] 13.1 Configure React Router
+    - Routes: /admin, /generate, /station/:id, /station/:id/configure
+    - _Requirements: 3.1_
+  - [x] 13.2 Create Layout component with navigation
+    - Header with HeySalad logo and nav links
+    - Apply brand colors
+    - _Requirements: 6.1_
+
+- [x] 14. Final integration and polish
+  - [x] 14.1 Wire up all API calls in frontend
+    - Connect components to API endpoints
+    - Add loading states and error handling
+    - _Requirements: 5.1-5.8_
+  - [x] 14.2 Add responsive styling
+    - Ensure mobile-friendly layouts
+    - _Requirements: 6.2_
+  - [x] 14.3 Create sample seed data
+    - 5 sample stations for demo
+    - _Requirements: Demo requirements_
+
+- [x] 15. Final Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
