@@ -137,7 +137,7 @@ export function Layout({ children }: LayoutProps) {
               className="h-6 w-6 rounded-md"
             />
             <span className="text-sm text-gray-500">
-              © 2024 HeySalad QC
+              © 2025 HeySalad OÜ
             </span>
           </div>
           <p className="text-xs text-gray-400">

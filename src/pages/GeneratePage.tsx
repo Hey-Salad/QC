@@ -11,7 +11,7 @@ import type { Station, MatLayout } from '../types';
 import { Button, MatPreview } from '../components';
 import { StationSelector } from '../components/StationSelector';
 import { LayoutPicker } from '../components/LayoutPicker';
-import { API_BASE } from '../lib/config';
+import { generateMatPDF, generateMatFilename } from '../lib/mat-generator';
 
 export function GeneratePage() {
   const [selectedStationId, setSelectedStationId] = useState<string>('');
@@ -31,7 +31,7 @@ export function GeneratePage() {
   };
 
   const handleDownload = async () => {
-    if (!selectedStationId) {
+    if (!selectedStation) {
       setError('Please select a station first');
       return;
     }
@@ -40,24 +40,20 @@ export function GeneratePage() {
     setError(null);
 
     try {
-      const response = await fetch(`${API_BASE}/generate-mat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          station_id: selectedStationId,
-          layout,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({})) as { message?: string };
-        throw new Error(errorData.message || 'Failed to generate mat');
-      }
-
-      const data: { url: string; filename: string } = await response.json();
+      // Generate PDF client-side
+      const pdfData = await generateMatPDF(selectedStation, layout);
+      const filename = generateMatFilename(selectedStation, layout);
       
-      // Trigger download
-      window.open(data.url, '_blank');
+      // Create download
+      const blob = new Blob([pdfData], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
