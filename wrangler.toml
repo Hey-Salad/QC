@@ -16,7 +16,7 @@ local_protocol = "http"
 [[d1_databases]]
 binding = "DB"
 database_name = "heysalad-qc-db"
-database_id = "placeholder-id-replace-with-actual"
+database_id = "ca2335b1-4ccf-4437-9407-6701e5e0604c"
 
 # R2 Storage binding for PDF files
 [[r2_buckets]]
@@ -25,7 +25,7 @@ bucket_name = "heysalad-qc-pdfs"
 
 # Environment variables
 [vars]
-ALLOWED_ORIGINS = "http://localhost:5173,https://qc.heysalad.app"
+ALLOWED_ORIGINS = "http://localhost:5173,https://qc.heysalad.app,https://heysalad-qc.pages.dev,https://ac941aa9.heysalad-qc.pages.dev"
 
 # Production environment
 [env.production]
@@ -34,7 +34,7 @@ vars = { ALLOWED_ORIGINS = "https://qc.heysalad.app" }
 [[env.production.d1_databases]]
 binding = "DB"
 database_name = "heysalad-qc-db"
-database_id = "placeholder-id-replace-with-actual"
+database_id = "ca2335b1-4ccf-4437-9407-6701e5e0604c"
 
 [[env.production.r2_buckets]]
 binding = "STORAGE"
