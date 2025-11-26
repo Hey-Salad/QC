@@ -163,40 +163,6 @@ async function getLogoDataUrl(): Promise<string> {
 }
 
 /**
- * Draws the HeySalad logo from loaded image or fallback text.
- * Logo original dimensions: 3861 x 1317 (aspect ratio ~2.93:1)
- */
-async function drawLogo(doc: jsPDF, x: number, y: number): Promise<void> {
-  const logoDataUrl = await getLogoDataUrl();
-  
-  if (logoDataUrl) {
-    try {
-      // Logo dimensions maintaining aspect ratio (3861:1317 ≈ 2.93:1)
-      // Using 50mm width with proportional height
-      const logoWidth = 50; // mm
-      const logoHeight = logoWidth / 2.93; // ~17mm to maintain aspect ratio
-      
-      // Add the actual HeySalad logo image (PNG format with white background)
-      doc.addImage(logoDataUrl, 'PNG', x, y - 8, logoWidth, logoHeight);
-      return;
-    } catch {
-      // Fall through to text fallback
-    }
-  }
-  
-  // Fallback: Draw text logo if image fails
-  doc.setFontSize(16);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(229, 57, 53); // Tomato red
-  doc.text('HeySalad', x, y);
-  
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(67, 160, 71); // Fresh green
-  doc.text('QC', x + 32, y);
-}
-
-/**
  * Draws a dashed detection boundary rectangle.
  */
 function drawDetectionZone(
@@ -214,12 +180,13 @@ function drawDetectionZone(
 }
 
 /**
- * Draws a single detection zone with QR code and labels.
+ * Draws a single detection zone with logo, QR code and labels.
  */
 async function drawZoneContent(
   doc: jsPDF,
   station: Station,
   qrDataUrl: string,
+  logoDataUrl: string,
   zoneX: number,
   zoneY: number,
   zoneWidth: number,
@@ -228,9 +195,28 @@ async function drawZoneContent(
   // Draw dashed detection boundary
   drawDetectionZone(doc, zoneX, zoneY, zoneWidth, zoneHeight);
   
-  // Calculate QR code position (centered horizontally, near top of zone)
+  // Draw HeySalad logo at top of zone (centered)
+  // Logo dimensions maintaining aspect ratio (3861:1317 ≈ 2.93:1)
+  const logoWidth = 35; // mm - smaller for inside zone
+  const logoHeight = logoWidth / 2.93; // ~12mm to maintain aspect ratio
+  const logoX = zoneX + (zoneWidth - logoWidth) / 2;
+  const logoY = zoneY + 5;
+  
+  if (logoDataUrl) {
+    try {
+      doc.addImage(logoDataUrl, 'PNG', logoX, logoY, logoWidth, logoHeight);
+    } catch {
+      // Fallback to text if image fails
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(229, 57, 53);
+      doc.text('HeySalad', zoneX + (zoneWidth - 25) / 2, logoY + 8);
+    }
+  }
+  
+  // Calculate QR code position (centered horizontally, below logo)
   const qrX = zoneX + (zoneWidth - QR_SIZE_MM) / 2;
-  const qrY = zoneY + 10;
+  const qrY = logoY + logoHeight + 5;
   
   // Add QR code image
   doc.addImage(qrDataUrl, 'PNG', qrX, qrY, QR_SIZE_MM, QR_SIZE_MM);
@@ -304,24 +290,22 @@ export async function generateMatPDF(
     format: 'a4',
   });
   
-  // Generate QR code data URL
+  // Generate QR code data URL and load logo
   const qrDataUrl = await generateQRCodeForPDF(station.id);
+  const logoDataUrl = await getLogoDataUrl();
   
   // Get layout configuration
   const config = LAYOUT_CONFIGS[layout];
   
-  // Draw header with logo
-  await drawLogo(doc, MARGIN_MM, MARGIN_MM + 5);
-  
-  // Draw station type badge
+  // Draw simple header (logo is now inside each zone)
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(100, 100, 100);
   const typeText = `Station Type: ${station.type.charAt(0).toUpperCase() + station.type.slice(1)}`;
   doc.text(typeText, A4_WIDTH_MM - MARGIN_MM - doc.getTextWidth(typeText), MARGIN_MM + 5);
   
-  // Calculate starting position for zones
-  const contentStartY = MARGIN_MM + HEADER_HEIGHT_MM;
+  // Calculate starting position for zones (reduced header since logo is in zones)
+  const contentStartY = MARGIN_MM + 10;
   
   // Draw detection zones based on layout
   for (let row = 0; row < config.rows; row++) {
@@ -333,6 +317,7 @@ export async function generateMatPDF(
         doc,
         station,
         qrDataUrl,
+        logoDataUrl,
         zoneX,
         zoneY,
         config.zoneWidth,
