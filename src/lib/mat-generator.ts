@@ -72,8 +72,9 @@ async function generateQRCodeForPDF(stationId: string): Promise<string> {
 /**
  * Loads an image from URL and converts to optimized base64 data URL
  * Resizes large images to reduce PDF file size
+ * Preserves transparency by using PNG format with white background fill
  */
-async function loadImageAsDataUrl(url: string, maxWidth = 400): Promise<string> {
+async function loadImageAsDataUrl(url: string, maxWidth = 400, preserveTransparency = false): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
@@ -94,9 +95,16 @@ async function loadImageAsDataUrl(url: string, maxWidth = 400): Promise<string> 
         reject(new Error('Failed to get canvas context'));
         return;
       }
+      
+      // Fill with white background for images with transparency (like logos)
+      if (!preserveTransparency) {
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, width, height);
+      }
+      
       ctx.drawImage(img, 0, 0, width, height);
-      // Use JPEG for smaller file size (0.9 quality)
-      resolve(canvas.toDataURL('image/jpeg', 0.9));
+      // Use PNG for images that need transparency handling, JPEG otherwise
+      resolve(canvas.toDataURL('image/png'));
     };
     img.onerror = () => reject(new Error(`Failed to load image: ${url}`));
     img.src = url;
@@ -162,8 +170,8 @@ async function drawLogo(doc: jsPDF, x: number, y: number): Promise<void> {
   
   if (logoDataUrl) {
     try {
-      // Add the actual HeySalad logo image (JPEG format for smaller size)
-      doc.addImage(logoDataUrl, 'JPEG', x, y - 5, 40, 10);
+      // Add the actual HeySalad logo image (PNG format with white background)
+      doc.addImage(logoDataUrl, 'PNG', x, y - 5, 40, 10);
       return;
     } catch {
       // Fall through to text fallback
