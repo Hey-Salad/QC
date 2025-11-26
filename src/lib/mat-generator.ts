@@ -332,17 +332,23 @@ export async function generateMatPDF(
     }
   }
   
-  // Draw footer
-  const footerY = A4_HEIGHT_MM - MARGIN_MM;
-  doc.setFontSize(8);
+  // Draw footer - two lines to avoid overlapping
+  doc.setFontSize(7);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(150, 150, 150);
   
-  const footerText = `Generated: ${new Date().toISOString().split('T')[0]} | Station ID: ${station.id}`;
-  doc.text(footerText, MARGIN_MM, footerY);
+  // Line 1: Generated date and Station ID
+  const footerLine1Y = A4_HEIGHT_MM - MARGIN_MM - 4;
+  const generatedText = `Generated: ${new Date().toISOString().split('T')[0]}`;
+  const stationIdText = `Station ID: ${station.id}`;
+  doc.text(generatedText, MARGIN_MM, footerLine1Y);
+  doc.text(stationIdText, A4_WIDTH_MM - MARGIN_MM - doc.getTextWidth(stationIdText), footerLine1Y);
   
+  // Line 2: URL centered
+  const footerLine2Y = A4_HEIGHT_MM - MARGIN_MM;
   const urlText = `qc.heysalad.app/station/${station.id}`;
-  doc.text(urlText, A4_WIDTH_MM - MARGIN_MM - doc.getTextWidth(urlText), footerY);
+  const urlWidth = doc.getTextWidth(urlText);
+  doc.text(urlText, (A4_WIDTH_MM - urlWidth) / 2, footerLine2Y);
   
   // Return PDF as ArrayBuffer
   return doc.output('arraybuffer');
