@@ -332,23 +332,37 @@ export async function generateMatPDF(
     }
   }
   
-  // Draw footer - two lines to avoid overlapping
+  // Draw footer with logo, URL, and metadata
+  const footerY = A4_HEIGHT_MM - MARGIN_MM - 2;
+  
+  // Left: HeySalad logo (small)
+  const footerLogoWidth = 20; // mm
+  const footerLogoHeight = footerLogoWidth / 2.93; // maintain aspect ratio
+  if (logoDataUrl) {
+    try {
+      doc.addImage(logoDataUrl, 'PNG', MARGIN_MM, footerY - footerLogoHeight + 2, footerLogoWidth, footerLogoHeight);
+    } catch {
+      // Fallback to text if image fails
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(229, 57, 53);
+      doc.text('HeySalad', MARGIN_MM, footerY);
+    }
+  }
+  
+  // Center: URL
   doc.setFontSize(7);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(150, 150, 150);
-  
-  // Line 1: Generated date and Station ID
-  const footerLine1Y = A4_HEIGHT_MM - MARGIN_MM - 4;
-  const generatedText = `Generated: ${new Date().toISOString().split('T')[0]}`;
-  const stationIdText = `Station ID: ${station.id}`;
-  doc.text(generatedText, MARGIN_MM, footerLine1Y);
-  doc.text(stationIdText, A4_WIDTH_MM - MARGIN_MM - doc.getTextWidth(stationIdText), footerLine1Y);
-  
-  // Line 2: URL centered
-  const footerLine2Y = A4_HEIGHT_MM - MARGIN_MM;
   const urlText = `qc.heysalad.app/station/${station.id}`;
   const urlWidth = doc.getTextWidth(urlText);
-  doc.text(urlText, (A4_WIDTH_MM - urlWidth) / 2, footerLine2Y);
+  doc.text(urlText, (A4_WIDTH_MM - urlWidth) / 2, footerY);
+  
+  // Right: Generated date and Station ID (stacked)
+  const generatedText = `Generated: ${new Date().toISOString().split('T')[0]}`;
+  const stationIdText = `ID: ${station.id.slice(0, 8)}...`;
+  doc.text(stationIdText, A4_WIDTH_MM - MARGIN_MM - doc.getTextWidth(stationIdText), footerY - 3);
+  doc.text(generatedText, A4_WIDTH_MM - MARGIN_MM - doc.getTextWidth(generatedText), footerY + 1);
   
   // Return PDF as ArrayBuffer
   return doc.output('arraybuffer');
