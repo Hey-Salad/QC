@@ -68,15 +68,75 @@ async function generateQRCodeForPDF(stationId: string): Promise<string> {
   });
 }
 
-/** HeySalad Logo as base64 PNG (resized for PDF) */
-const HEYSALAD_LOGO_BASE64 = 'data:image/png;base64,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';
+/**
+ * Loads an image from URL and converts to base64 data URL
+ */
+async function loadImageAsDataUrl(url: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('Failed to get canvas context'));
+        return;
+      }
+      ctx.drawImage(img, 0, 0);
+      resolve(canvas.toDataURL('image/png'));
+    };
+    img.onerror = () => reject(new Error(`Failed to load image: ${url}`));
+    img.src = url;
+  });
+}
+
+/** Cached logo data URL */
+let cachedLogoDataUrl: string | null = null;
 
 /**
- * Draws the HeySalad logo from embedded image.
+ * Gets the HeySalad logo as a data URL, loading from public folder
  */
-function drawLogo(doc: jsPDF, x: number, y: number): void {
-  // Add the actual HeySalad logo image
-  doc.addImage(HEYSALAD_LOGO_BASE64, 'PNG', x, y - 5, 40, 10);
+async function getLogoDataUrl(): Promise<string> {
+  if (cachedLogoDataUrl) {
+    return cachedLogoDataUrl;
+  }
+  try {
+    cachedLogoDataUrl = await loadImageAsDataUrl('/HeySalad Logo Black.png');
+    return cachedLogoDataUrl;
+  } catch {
+    // Fallback to text if image fails to load
+    return '';
+  }
+}
+
+/**
+ * Draws the HeySalad logo from loaded image or fallback text.
+ */
+async function drawLogo(doc: jsPDF, x: number, y: number): Promise<void> {
+  const logoDataUrl = await getLogoDataUrl();
+  
+  if (logoDataUrl) {
+    try {
+      // Add the actual HeySalad logo image
+      doc.addImage(logoDataUrl, 'PNG', x, y - 5, 40, 10);
+      return;
+    } catch {
+      // Fall through to text fallback
+    }
+  }
+  
+  // Fallback: Draw text logo if image fails
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(229, 57, 53); // Tomato red
+  doc.text('HeySalad', x, y);
+  
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(67, 160, 71); // Fresh green
+  doc.text('QC', x + 32, y);
 }
 
 /**
@@ -183,7 +243,7 @@ export async function generateMatPDF(
   const config = LAYOUT_CONFIGS[layout];
   
   // Draw header with logo
-  drawLogo(doc, MARGIN_MM, MARGIN_MM + 5);
+  await drawLogo(doc, MARGIN_MM, MARGIN_MM + 5);
   
   // Draw station type badge
   doc.setFontSize(10);
