@@ -107,6 +107,38 @@ async function loadImageAsDataUrl(url: string, maxWidth = 400): Promise<string> 
 let cachedLogoDataUrl: string | null = null;
 
 /**
+ * Renders text to a canvas and returns as data URL.
+ * This allows using system fonts including Chinese characters.
+ */
+function renderTextAsImage(
+  text: string, 
+  fontSize: number, 
+  color: string,
+  fontFamily = 'system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif'
+): string {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return '';
+  
+  // Set font to measure text
+  ctx.font = `${fontSize}px ${fontFamily}`;
+  const metrics = ctx.measureText(text);
+  
+  // Set canvas size with padding
+  const padding = 4;
+  canvas.width = Math.ceil(metrics.width) + padding * 2;
+  canvas.height = fontSize + padding * 2;
+  
+  // Clear and draw text
+  ctx.fillStyle = color;
+  ctx.font = `${fontSize}px ${fontFamily}`;
+  ctx.textBaseline = 'top';
+  ctx.fillText(text, padding, padding);
+  
+  return canvas.toDataURL('image/png');
+}
+
+/**
  * Gets the HeySalad logo as a data URL, loading from public folder
  */
 async function getLogoDataUrl(): Promise<string> {
@@ -200,23 +232,44 @@ async function drawZoneContent(
   const nameX = zoneX + (zoneWidth - stationNameWidth) / 2;
   doc.text(station.name, nameX, textY);
   
-  // Add instruction label
+  // Add English instruction label
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(100, 100, 100);
   
   const labelEn = 'Scan QR code for quality check';
   const labelEnWidth = doc.getTextWidth(labelEn);
-  doc.text(labelEn, zoneX + (zoneWidth - labelEnWidth) / 2, textY + 8);
+  doc.text(labelEn, zoneX + (zoneWidth - labelEnWidth) / 2, textY + 7);
+  
+  // Add Chinese instruction as image (to support Chinese characters)
+  const labelZh = '扫描二维码进行质检';
+  const zhImageDataUrl = renderTextAsImage(labelZh, 16, '#666666');
+  if (zhImageDataUrl) {
+    // Calculate centered position (image is ~80px wide at 16px font)
+    const zhWidth = 32; // mm width in PDF
+    const zhHeight = 5; // mm height in PDF
+    const zhX = zoneX + (zoneWidth - zhWidth) / 2;
+    doc.addImage(zhImageDataUrl, 'PNG', zhX, textY + 9, zhWidth, zhHeight);
+  }
   
   // Add "Place items here" instruction at bottom of zone
-  const instructionY = zoneY + zoneHeight - 12;
+  const instructionY = zoneY + zoneHeight - 15;
   doc.setFontSize(10);
   doc.setTextColor(150, 150, 150);
   
   const instructionEn = 'Place items in detection zone';
   const instrEnWidth = doc.getTextWidth(instructionEn);
   doc.text(instructionEn, zoneX + (zoneWidth - instrEnWidth) / 2, instructionY);
+  
+  // Add Chinese instruction for placement
+  const instrZh = '将物品放置在检测区域内';
+  const instrZhImageDataUrl = renderTextAsImage(instrZh, 16, '#999999');
+  if (instrZhImageDataUrl) {
+    const instrZhWidth = 42; // mm width in PDF
+    const instrZhHeight = 5; // mm height in PDF
+    const instrZhX = zoneX + (zoneWidth - instrZhWidth) / 2;
+    doc.addImage(instrZhImageDataUrl, 'PNG', instrZhX, instructionY + 3, instrZhWidth, instrZhHeight);
+  }
 }
 
 /**
