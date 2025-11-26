@@ -1,0 +1,32 @@
+[Unit]
+Description=HeySalad Vision Client
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/heysalad-vision
+
+# Configuration via environment variables
+# Edit these values for your setup
+Environment=API_URL=https://your-api.example.com
+Environment=API_KEY=YOUR_API_KEY_HERE
+Environment=CAMERAS=[{"camera_id":"cam1","rtsp_url":"rtsp://192.168.1.100/stream","name":"Station 1"}]
+Environment=INTERVAL=2.0
+Environment=MAX_RETRIES=5
+
+# Run the client
+ExecStart=/home/pi/heysalad-vision/venv/bin/python main.py
+
+# Restart on failure
+Restart=always
+RestartSec=10
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=heysalad-vision
+
+[Install]
+WantedBy=multi-user.target

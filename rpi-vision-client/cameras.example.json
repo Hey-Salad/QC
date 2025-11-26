@@ -1,0 +1,14 @@
+{
+  "cameras": [
+    {
+      "camera_id": "cam-station-1",
+      "rtsp_url": "rtsp://192.168.1.100:554/stream",
+      "name": "Station 1 Camera"
+    },
+    {
+      "camera_id": "cam-station-2",
+      "rtsp_url": "rtsp://192.168.1.101:554/stream",
+      "name": "Station 2 Camera"
+    }
+  ]
+}

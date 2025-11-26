@@ -1,0 +1,4 @@
+# HeySalad Vision Client Dependencies
+# Python 3.9+ required
+
+requests>=2.28.0

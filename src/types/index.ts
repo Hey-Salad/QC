@@ -162,6 +162,96 @@ export interface PaginatedResponse<T> {
 }
 
 // =============================================================================
+// Cloud Vision Integration Types (Requirements 2.1, 3.4, 4.1, 5.3)
+// =============================================================================
+
+/** Camera to station mapping */
+export interface CameraMapping {
+  camera_id: string;
+  station_id: string;
+  rtsp_url: string;
+  name: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Input for creating a new camera mapping */
+export interface CreateCameraMappingInput {
+  camera_id: string;
+  station_id: string;
+  rtsp_url: string;
+  name?: string;
+}
+
+/** Input for updating a camera mapping */
+export interface UpdateCameraMappingInput {
+  station_id?: string;
+  rtsp_url?: string;
+  name?: string;
+}
+
+/** Bounding box for vision detection (normalized 0-1 coordinates) */
+export interface VisionBoundingBox {
+  x: number;      // 0-1 normalized
+  y: number;      // 0-1 normalized
+  width: number;  // 0-1 normalized
+  height: number; // 0-1 normalized
+}
+
+/** A detected object from Workers AI vision detection */
+export interface VisionDetectedObject {
+  label: string;
+  confidence: number;
+  bbox: VisionBoundingBox;
+}
+
+/** Vision detection result stored in database */
+export interface VisionDetection {
+  id: string;
+  camera_id: string;
+  station_id: string;
+  timestamp: string;
+  objects: VisionDetectedObject[];
+  thumbnail_key: string | null;
+  processing_time_ms: number;
+}
+
+/** Camera health status */
+export type CameraStatus = 'online' | 'offline' | 'error' | 'unknown';
+
+/** Camera health tracking */
+export interface CameraHealth {
+  camera_id: string;
+  last_frame_at: string | null;
+  error_count: number;
+  last_error: string | null;
+  status: CameraStatus;
+}
+
+/** API response for latest detection */
+export interface LatestDetectionResponse {
+  detection: VisionDetection;
+  thumbnail_url: string;
+  camera: CameraMapping;
+}
+
+/** Response from vision detection API */
+export interface VisionDetectResponse {
+  success: boolean;
+  detection_id: string;
+  station_id: string;
+  timestamp: string;
+  objects: VisionDetectedObject[];
+  thumbnail_url: string;
+  processing_time_ms: number;
+}
+
+/** Camera health response */
+export interface CameraHealthResponse {
+  cameras: Array<CameraHealth & { camera_name: string | null }>;
+}
+
+// =============================================================================
 // Environment Types
 // =============================================================================
 
@@ -169,5 +259,8 @@ export interface PaginatedResponse<T> {
 export interface Env {
   DB: D1Database;
   STORAGE: R2Bucket;
+  VISION_THUMBNAILS?: R2Bucket;
+  AI?: Ai;
   ALLOWED_ORIGINS: string;
+  VISION_API_KEY?: string;
 }

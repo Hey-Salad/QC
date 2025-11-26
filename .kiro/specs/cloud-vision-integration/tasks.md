@@ -1,0 +1,197 @@
+# Implementation Plan
+
+## Cloud Vision Integration
+
+- [x] 1. Set up database schema and types for vision system
+  - [x] 1.1 Create D1 migration for camera_mappings, vision_detections, and camera_health tables
+    - Add foreign key constraints to stations table
+    - Include indexes for common queries (station_id, timestamp)
+    - _Requirements: 2.1, 4.1, 5.3_
+  - [x] 1.2 Create TypeScript interfaces for vision data models
+    - CameraMapping, VisionDetection, DetectedObject, BoundingBox, CameraHealth
+    - LatestDetectionResponse for API responses
+    - _Requirements: 3.4_
+  - [x] 1.3 Write property test for detection result serialization round-trip
+    - **Property 10: Detection result round-trip serialization**
+    - **Validates: Requirements 3.5, 3.6**
+
+- [x] 2. Implement camera mapping repository
+  - [x] 2.1 Create camera-mapping-repository.ts with CRUD operations
+    - create(), getById(), getByStationId(), update(), delete(), list()
+    - _Requirements: 2.1, 2.2, 2.3, 2.4_
+  - [x] 2.2 Write property test for camera mapping storage
+    - **Property 2: Camera mapping storage**
+    - **Validates: Requirements 2.1**
+  - [x] 2.3 Write property test for camera mapping update
+    - **Property 4: Camera mapping update**
+    - **Validates: Requirements 2.3**
+  - [x] 2.4 Write property test for camera mapping deletion
+    - **Property 5: Camera mapping deletion**
+    - **Validates: Requirements 2.4**
+
+- [x] 3. Implement image validation and processing utilities
+  - [x] 3.1 Create image-utils.ts with validation functions
+    - isValidImageFormat() - check JPEG/PNG magic bytes
+    - getImageSize() - calculate byte size
+    - getImageDimensions() - extract width/height from headers
+    - _Requirements: 3.1, 3.2_
+  - [x] 3.2 Implement image resize function for Workers AI
+    - Resize images > 1920x1080 maintaining aspect ratio
+    - Use canvas API or sharp-like library compatible with Workers
+    - _Requirements: 3.3_
+  - [x] 3.3 Implement thumbnail generation function
+    - Resize to max 640x480 maintaining aspect ratio
+    - Output as JPEG with 85% quality
+    - _Requirements: 4.1_
+  - [x] 3.4 Write property test for image format validation
+    - **Property 6: Image format validation**
+    - **Validates: Requirements 3.1**
+  - [x] 3.5 Write property test for image size validation
+    - **Property 7: Image size validation**
+    - **Validates: Requirements 3.2**
+  - [x] 3.6 Write property test for image resize constraint
+    - **Property 8: Image resize constraint**
+    - **Validates: Requirements 3.3**
+  - [x] 3.7 Write property test for thumbnail size constraint
+    - **Property 11: Thumbnail size constraint**
+    - **Validates: Requirements 4.1**
+
+- [x] 4. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 5. Implement Workers AI integration
+  - [x] 5.1 Create workers-ai-client.ts for object detection
+    - runDetection() - send image to Workers AI and get raw results
+    - Handle model selection (@cf/facebook/detr-resnet-50)
+    - _Requirements: 1.2_
+  - [x] 5.2 Implement confidence threshold filtering
+    - Filter results to only include confidence > 0.5
+    - _Requirements: 1.2_
+  - [x] 5.3 Implement result transformation to HeySalad schema
+    - Transform Workers AI response to DetectedObject[] format
+    - Normalize bounding box coordinates to 0-1 range
+    - _Requirements: 3.4_
+  - [x] 5.4 Write property test for confidence threshold filtering
+    - **Property 1: Confidence threshold filtering**
+    - **Validates: Requirements 1.2**
+  - [x] 5.5 Write property test for detection result schema transformation
+    - **Property 9: Detection result schema transformation**
+    - **Validates: Requirements 3.4**
+
+- [x] 6. Implement vision detection repository
+  - [x] 6.1 Create vision-detection-repository.ts
+    - create() - store detection result
+    - getLatestByStationId() - get most recent detection for station
+    - getByStationId() - get detection history with pagination
+    - _Requirements: 4.1, 4.2_
+  - [x] 6.2 Write property test for camera-to-station association
+    - **Property 3: Camera-to-station association**
+    - **Validates: Requirements 2.2**
+
+- [x] 7. Implement authentication middleware
+  - [x] 7.1 Create vision-auth.ts middleware
+    - Extract API key from X-API-Key header
+    - Validate against stored keys (environment variable or D1)
+    - Return 401 for missing or invalid keys
+    - _Requirements: 7.1, 7.2_
+  - [x] 7.2 Write property test for authentication rejection
+    - **Property 13: Authentication rejection**
+    - **Validates: Requirements 7.2**
+
+- [x] 8. Implement camera health tracking
+  - [x] 8.1 Create camera-health-repository.ts
+    - updateLastFrame() - update last_frame_at timestamp
+    - incrementErrorCount() - track errors
+    - getHealth() - get health status for camera
+    - getAllHealth() - get health for all cameras
+    - _Requirements: 5.3, 5.4_
+  - [x] 8.2 Implement offline detection logic
+    - Mark camera as offline if no frames for 60+ seconds
+    - _Requirements: 5.4_
+  - [x] 8.3 Write property test for camera offline timeout
+    - **Property 12: Camera offline timeout**
+    - **Validates: Requirements 5.4**
+
+- [x] 9. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 10. Implement Cloud Vision API endpoints
+  - [x] 10.1 Add POST /api/vision/detect endpoint
+    - Parse multipart form data (frame file + camera_id)
+    - Validate image format and size
+    - Resize if needed, run detection, store result
+    - Return detection response with thumbnail URL
+    - _Requirements: 1.2, 3.1, 3.2, 3.3, 3.4, 4.1_
+  - [x] 10.2 Add camera management endpoints
+    - GET /api/vision/cameras - list all cameras
+    - POST /api/vision/cameras - register new camera
+    - PUT /api/vision/cameras/:id - update camera
+    - DELETE /api/vision/cameras/:id - delete camera
+    - _Requirements: 2.1, 2.2, 2.3, 2.4_
+  - [x] 10.3 Add GET /api/vision/health endpoint
+    - Return status of all cameras with last detection time
+    - _Requirements: 5.3_
+  - [x] 10.4 Add GET /api/vision/latest/:station_id endpoint
+    - Return latest detection with thumbnail URL
+    - _Requirements: 4.2_
+  - [x] 10.5 Wire up authentication middleware to vision routes
+    - Apply to all /api/vision/* endpoints except health
+    - _Requirements: 7.1, 7.2_
+
+- [x] 11. Implement R2 thumbnail storage
+  - [x] 11.1 Configure R2 bucket binding in wrangler.toml
+    - Add VISION_THUMBNAILS bucket binding
+    - _Requirements: 4.1_
+  - [x] 11.2 Create thumbnail-storage.ts
+    - upload() - store thumbnail with detection_id key
+    - getUrl() - generate signed URL for thumbnail
+    - delete() - remove thumbnail
+    - _Requirements: 4.1, 4.2_
+
+- [x] 12. Update HeySalad QC frontend for real detections
+  - [x] 12.1 Create useVisionDetection hook
+    - Poll /api/vision/latest/:station_id every 2 seconds
+    - Return latest detection and thumbnail URL
+    - _Requirements: 4.2, 4.4_
+  - [x] 12.2 Update CameraFeed component to show real frames
+    - Display thumbnail from latest detection
+    - Overlay bounding boxes on detected objects
+    - _Requirements: 4.3_
+  - [x] 12.3 Integrate detection results with checklist
+    - Map detected object labels to expected items
+    - Auto-check items when detected with high confidence
+    - _Requirements: 1.2_
+
+- [x] 13. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 14. Create RPi Client Python script
+  - [x] 14.1 Create rpi-vision-client/main.py
+    - Parse command line args (api_url, api_key, cameras config)
+    - Main loop with configurable interval (default 2s)
+    - _Requirements: 1.4, 6.4_
+  - [x] 14.2 Implement frame capture using ffmpeg
+    - Single frame capture from RTSP URL
+    - Release connection immediately after capture
+    - Output as JPEG bytes
+    - _Requirements: 6.3_
+  - [x] 14.3 Implement API client for frame submission
+    - Send frame as multipart/form-data
+    - Include camera_id and API key header
+    - Handle response and errors
+    - _Requirements: 1.1, 7.1, 7.3_
+  - [x] 14.4 Implement retry logic with exponential backoff
+    - Retry RTSP connection failures up to 5 times
+    - Backoff: 1s, 2s, 4s, 8s, 16s
+    - _Requirements: 1.5_
+  - [x] 14.5 Implement error reporting to health endpoint
+    - Report capture failures to API
+    - _Requirements: 5.2_
+  - [x] 14.6 Create requirements.txt and README for RPi client
+    - Document installation and configuration
+    - Include systemd service file for auto-start
+    - _Requirements: 6.1, 6.2_
+
+- [ ] 15. Final Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+

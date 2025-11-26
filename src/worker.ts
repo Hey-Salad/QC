@@ -11,6 +11,7 @@ import { DetectionLogRepository } from './lib/detection-log-repository';
 import { DetectionRulesRepository } from './lib/detection-rules-repository';
 import { validateCreateStationInput, validateUpdateStationInput, validateDetectionRulesInput, isValidUUID, validateDetectionRequest } from './lib/validation';
 import { processMockDetection } from './lib/mock-detection';
+import { handleVisionRoutes } from './lib/vision-api';
 
 // CORS headers helper
 function corsHeaders(origin: string, allowedOrigins: string): HeadersInit {
@@ -20,7 +21,7 @@ function corsHeaders(origin: string, allowedOrigins: string): HeadersInit {
   return {
     'Access-Control-Allow-Origin': allowOrigin,
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, X-API-Key',
   };
 }
 
@@ -69,6 +70,14 @@ export default {
     // API routes
     if (url.pathname.startsWith('/api/')) {
       try {
+        // Handle vision API routes first
+        if (url.pathname.startsWith('/api/vision/')) {
+          const visionResponse = await handleVisionRoutes(request, env, url);
+          if (visionResponse) {
+            return visionResponse;
+          }
+        }
+        
         // Health check endpoint
         if (url.pathname === '/api/health') {
           return jsonResponse({ status: 'ok', timestamp: new Date().toISOString() }, 200, origin, env.ALLOWED_ORIGINS);

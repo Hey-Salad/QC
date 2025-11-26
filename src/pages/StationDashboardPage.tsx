@@ -2,14 +2,17 @@
  * HeySalad QC - Station Dashboard Page
  * 
  * Station dashboard with camera feed, checklist, detection log, and manual scan.
- * Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6
+ * Integrates with Cloud Vision API for real-time object detection.
+ * Requirements: 1.2, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 4.2, 4.3, 4.4
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import type { Station, DetectionLogEntry, DetectionRules, DetectionResult, ExpectedItem } from '../types';
 import type { ChecklistItemResult } from '../lib/checklist';
+import { compareVisionChecklist, mapVisionObjectsToExpected } from '../lib/checklist';
 import { Button, AlertBadge, CameraFeed, Checklist, DetectionLog } from '../components';
+import { useVisionDetection } from '../hooks';
 import { API_BASE } from '../lib/config';
 
 export interface StationDashboardPageProps {
@@ -28,6 +31,7 @@ export function StationDashboardPage({ stationId: propStationId }: StationDashbo
   const { id: paramStationId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const stationId = propStationId || paramStationId || '';
+  
   // Station data
   const [station, setStation] = useState<Station | null>(null);
   const [isLoadingStation, setIsLoadingStation] = useState(true);
@@ -40,10 +44,22 @@ export function StationDashboardPage({ stationId: propStationId }: StationDashbo
   const [logs, setLogs] = useState<DetectionLogEntry[]>([]);
   const [isLoadingLogs, setIsLoadingLogs] = useState(true);
 
-  // Current detection state
+  // Manual detection state (legacy mock detection)
   const [currentDetection, setCurrentDetection] = useState<DetectionResult | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
+
+  // Vision detection hook - polls for real camera detections
+  const {
+    detection: visionDetection,
+    thumbnailUrl,
+    objects: visionObjects,
+    isLoading: isVisionLoading,
+    error: visionError,
+  } = useVisionDetection(stationId, {
+    pollInterval: 2000,
+    enabled: !!stationId,
+  });
 
   // Fetch station details
   const fetchStation = useCallback(async () => {
@@ -102,7 +118,7 @@ export function StationDashboardPage({ stationId: propStationId }: StationDashbo
     fetchLogs();
   }, [fetchStation, fetchRules, fetchLogs]);
 
-  // Manual scan handler
+  // Manual scan handler (legacy mock detection)
   const handleManualScan = async () => {
     setIsScanning(true);
     setScanError(null);
@@ -134,22 +150,64 @@ export function StationDashboardPage({ stationId: propStationId }: StationDashbo
 
   // Get expected items from rules or use defaults
   const expectedItems = rules?.expected_items ?? DEFAULT_EXPECTED_ITEMS;
+  const expectedLabels = expectedItems.map(item => item.label);
+  const confidenceThreshold = rules?.confidence_threshold ?? 0.5;
 
-  // Convert current detection to checklist items
-  const checklistItems: ChecklistItemResult[] = expectedItems.map(item => {
-    const detected = currentDetection?.detected_objects.find(
-      d => d.label.toLowerCase() === item.label.toLowerCase()
-    );
-    return {
-      label: item.label,
-      required: item.required,
-      found: !!detected,
-      confidence: detected?.confidence ?? null,
-    };
-  });
+  // Map vision objects to expected labels for better matching
+  const mappedVisionObjects = useMemo(() => {
+    return mapVisionObjectsToExpected(visionObjects, expectedLabels);
+  }, [visionObjects, expectedLabels]);
 
-  const checklistPass = currentDetection?.pass ?? 
-    checklistItems.every(item => !item.required || item.found);
+  // Determine which detection source to use for checklist
+  // Prefer vision detection if available, fall back to manual detection
+  const hasVisionDetection = visionDetection !== null && visionObjects.length > 0;
+  const hasManualDetection = currentDetection !== null;
+
+  // Compute checklist items based on available detection source
+  const { checklistItems, checklistPass } = useMemo(() => {
+    if (hasVisionDetection) {
+      // Use vision detection with auto-check based on confidence
+      const result = compareVisionChecklist(expectedItems, mappedVisionObjects, confidenceThreshold);
+      return {
+        checklistItems: result.items,
+        checklistPass: result.pass,
+      };
+    } else if (hasManualDetection) {
+      // Fall back to manual detection
+      const items: ChecklistItemResult[] = expectedItems.map(item => {
+        const detected = currentDetection?.detected_objects.find(
+          d => d.label.toLowerCase() === item.label.toLowerCase()
+        );
+        return {
+          label: item.label,
+          required: item.required,
+          found: !!detected,
+          confidence: detected?.confidence ?? null,
+        };
+      });
+      const pass = currentDetection?.pass ?? items.every(item => !item.required || item.found);
+      return { checklistItems: items, checklistPass: pass };
+    } else {
+      // No detection yet - show empty checklist
+      const items: ChecklistItemResult[] = expectedItems.map(item => ({
+        label: item.label,
+        required: item.required,
+        found: false,
+        confidence: null,
+      }));
+      return { checklistItems: items, checklistPass: false };
+    }
+  }, [hasVisionDetection, hasManualDetection, expectedItems, mappedVisionObjects, confidenceThreshold, currentDetection]);
+
+  // Determine the timestamp to display
+  const lastDetectionTime = useMemo(() => {
+    if (hasVisionDetection && visionDetection) {
+      return new Date(visionDetection.timestamp);
+    } else if (hasManualDetection && currentDetection) {
+      return new Date(currentDetection.timestamp);
+    }
+    return null;
+  }, [hasVisionDetection, hasManualDetection, visionDetection, currentDetection]);
 
   // Station type labels
   const stationTypeLabels: Record<string, string> = {
@@ -196,6 +254,9 @@ export function StationDashboardPage({ stationId: propStationId }: StationDashbo
     );
   }
 
+  // Determine overall status for header badge
+  const showStatusBadge = hasVisionDetection || hasManualDetection;
+
   return (
     <div className="space-y-6">
       {/* Station Header */}
@@ -204,9 +265,9 @@ export function StationDashboardPage({ stationId: propStationId }: StationDashbo
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold text-gray-900">{station.name}</h1>
-              {currentDetection && (
+              {showStatusBadge && (
                 <AlertBadge 
-                  status={currentDetection.pass ? 'pass' : 'fail'} 
+                  status={checklistPass ? 'pass' : 'fail'} 
                   size="lg"
                 />
               )}
@@ -234,15 +295,15 @@ export function StationDashboardPage({ stationId: propStationId }: StationDashbo
         </div>
       </div>
 
-      {/* Scan Error Alert */}
-      {scanError && (
+      {/* Error Alerts */}
+      {(scanError || visionError) && (
         <div className="bg-red-50 border border-red-200 rounded-md p-4">
           <div className="flex">
             <svg className="h-5 w-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <div className="ml-3">
-              <p className="text-sm text-red-700">{scanError}</p>
+              <p className="text-sm text-red-700">{scanError || visionError}</p>
             </div>
             <button
               className="ml-auto text-red-400 hover:text-red-600"
@@ -280,23 +341,42 @@ export function StationDashboardPage({ stationId: propStationId }: StationDashbo
               <CameraFeed
                 width={640}
                 height={480}
-                detections={currentDetection?.detected_objects}
-                showOverlay={!!currentDetection}
-                isProcessing={isScanning}
+                // Legacy detections (pixel-based bounding boxes)
+                detections={!hasVisionDetection ? currentDetection?.detected_objects : undefined}
+                // Vision detections (normalized bounding boxes)
+                visionDetections={hasVisionDetection ? mappedVisionObjects : undefined}
+                showOverlay={hasVisionDetection || hasManualDetection}
+                isProcessing={isScanning || isVisionLoading}
+                // Real thumbnail from vision API
+                thumbnailUrl={thumbnailUrl}
+                thumbnailAlt={`Camera feed for ${station.name}`}
               />
             </div>
 
             {/* Detection summary */}
-            {currentDetection && (
+            {(hasVisionDetection || hasManualDetection) && (
               <div className="mt-4 p-3 bg-gray-50 rounded-lg">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-sm">
                   <span className="text-gray-600">
-                    Last scan: {new Date(currentDetection.timestamp).toLocaleTimeString()}
+                    {lastDetectionTime && (
+                      <>Last detection: {lastDetectionTime.toLocaleTimeString()}</>
+                    )}
+                    {hasVisionDetection && (
+                      <span className="ml-2 text-green-600 font-medium">(Live)</span>
+                    )}
                   </span>
                   <span className="text-gray-600">
-                    {currentDetection.detected_objects.length} objects detected
+                    {hasVisionDetection 
+                      ? `${visionObjects.length} objects detected`
+                      : `${currentDetection?.detected_objects.length ?? 0} objects detected`
+                    }
                   </span>
                 </div>
+                {visionDetection?.processing_time_ms && (
+                  <div className="text-xs text-gray-500 mt-1">
+                    Processing time: {visionDetection.processing_time_ms}ms
+                  </div>
+                )}
               </div>
             )}
           </div>

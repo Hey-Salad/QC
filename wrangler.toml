@@ -23,6 +23,11 @@ database_id = "ca2335b1-4ccf-4437-9407-6701e5e0604c"
 binding = "STORAGE"
 bucket_name = "heysalad-qc-pdfs"
 
+# R2 Storage binding for vision thumbnails
+[[r2_buckets]]
+binding = "VISION_THUMBNAILS"
+bucket_name = "heysalad-vision-thumbnails"
+
 # Environment variables
 [vars]
 ALLOWED_ORIGINS = "http://localhost:5173,https://qc.heysalad.app,https://heysalad-qc.pages.dev,https://ac941aa9.heysalad-qc.pages.dev"
@@ -39,3 +44,7 @@ database_id = "ca2335b1-4ccf-4437-9407-6701e5e0604c"
 [[env.production.r2_buckets]]
 binding = "STORAGE"
 bucket_name = "heysalad-qc-pdfs"
+
+[[env.production.r2_buckets]]
+binding = "VISION_THUMBNAILS"
+bucket_name = "heysalad-vision-thumbnails"
