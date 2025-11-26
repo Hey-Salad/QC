@@ -1,6 +1,6 @@
 # HeySalad® QC
 
-![HeySalad QC Banner](public/HeySalad%20QC.svg)
+![HeySalad QC Banner](https://raw.githubusercontent.com/Hey-Salad/QC/main/public/HeySalad%20QC.svg)
 
 > **AI-powered quality control system for food preparation stations**
 
