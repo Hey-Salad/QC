@@ -1,3 +1,13 @@
+-- HeySalad QC - Quality Control System
+--
+-- Copyright (C) 2025 SALADHR TECHNOLOGY LTD
+-- Company No. 14979493
+-- HeySalad® is a registered trademark (UK00004063403)
+--
+-- This program is free software: you can redistribute it and/or modify
+-- it under the terms of the GNU General Public License v3.0.
+-- See LICENSE file for details.
+
 -- HeySalad QC Initial Database Schema
 -- Migration: 0001_initial_schema
 -- Requirements: 7.1, 7.2
