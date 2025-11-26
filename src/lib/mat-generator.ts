@@ -164,14 +164,20 @@ async function getLogoDataUrl(): Promise<string> {
 
 /**
  * Draws the HeySalad logo from loaded image or fallback text.
+ * Logo original dimensions: 3861 x 1317 (aspect ratio ~2.93:1)
  */
 async function drawLogo(doc: jsPDF, x: number, y: number): Promise<void> {
   const logoDataUrl = await getLogoDataUrl();
   
   if (logoDataUrl) {
     try {
+      // Logo dimensions maintaining aspect ratio (3861:1317 ≈ 2.93:1)
+      // Using 50mm width with proportional height
+      const logoWidth = 50; // mm
+      const logoHeight = logoWidth / 2.93; // ~17mm to maintain aspect ratio
+      
       // Add the actual HeySalad logo image (PNG format with white background)
-      doc.addImage(logoDataUrl, 'PNG', x, y - 5, 40, 10);
+      doc.addImage(logoDataUrl, 'PNG', x, y - 8, logoWidth, logoHeight);
       return;
     } catch {
       // Fall through to text fallback
