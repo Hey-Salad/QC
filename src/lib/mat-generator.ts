@@ -57,35 +57,46 @@ const LAYOUT_CONFIGS: Record<MatLayout, LayoutConfig> = {
 
 /**
  * Generates a QR code as a base64 data URL for embedding in PDF.
+ * Uses optimized settings for good print quality with smaller file size.
  */
 async function generateQRCodeForPDF(stationId: string): Promise<string> {
   const url = generateStationUrl(stationId);
   return QRCode.toDataURL(url, {
     type: 'image/png',
-    width: 300, // Higher resolution for print quality
+    width: 200, // Good resolution for print (50mm at ~100 DPI)
     margin: 1,
     errorCorrectionLevel: 'M',
   });
 }
 
 /**
- * Loads an image from URL and converts to base64 data URL
+ * Loads an image from URL and converts to optimized base64 data URL
+ * Resizes large images to reduce PDF file size
  */
-async function loadImageAsDataUrl(url: string): Promise<string> {
+async function loadImageAsDataUrl(url: string, maxWidth = 400): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => {
+      // Calculate dimensions to fit within maxWidth while maintaining aspect ratio
+      let width = img.width;
+      let height = img.height;
+      if (width > maxWidth) {
+        height = (height * maxWidth) / width;
+        width = maxWidth;
+      }
+      
       const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
+      canvas.width = width;
+      canvas.height = height;
       const ctx = canvas.getContext('2d');
       if (!ctx) {
         reject(new Error('Failed to get canvas context'));
         return;
       }
-      ctx.drawImage(img, 0, 0);
-      resolve(canvas.toDataURL('image/png'));
+      ctx.drawImage(img, 0, 0, width, height);
+      // Use JPEG for smaller file size (0.9 quality)
+      resolve(canvas.toDataURL('image/jpeg', 0.9));
     };
     img.onerror = () => reject(new Error(`Failed to load image: ${url}`));
     img.src = url;
@@ -119,8 +130,8 @@ async function drawLogo(doc: jsPDF, x: number, y: number): Promise<void> {
   
   if (logoDataUrl) {
     try {
-      // Add the actual HeySalad logo image
-      doc.addImage(logoDataUrl, 'PNG', x, y - 5, 40, 10);
+      // Add the actual HeySalad logo image (JPEG format for smaller size)
+      doc.addImage(logoDataUrl, 'JPEG', x, y - 5, 40, 10);
       return;
     } catch {
       // Fall through to text fallback
@@ -189,33 +200,23 @@ async function drawZoneContent(
   const nameX = zoneX + (zoneWidth - stationNameWidth) / 2;
   doc.text(station.name, nameX, textY);
   
-  // Add bilingual labels
-  doc.setFontSize(8);
+  // Add instruction label
+  doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(100, 100, 100);
   
-  const labelEn = 'Scan for QC Check';
-  const labelZh = '扫描进行质检';
-  
+  const labelEn = 'Scan QR code for quality check';
   const labelEnWidth = doc.getTextWidth(labelEn);
-  const labelZhWidth = doc.getTextWidth(labelZh);
-  
-  doc.text(labelEn, zoneX + (zoneWidth - labelEnWidth) / 2, textY + 6);
-  doc.text(labelZh, zoneX + (zoneWidth - labelZhWidth) / 2, textY + 11);
+  doc.text(labelEn, zoneX + (zoneWidth - labelEnWidth) / 2, textY + 8);
   
   // Add "Place items here" instruction at bottom of zone
-  const instructionY = zoneY + zoneHeight - 10;
+  const instructionY = zoneY + zoneHeight - 12;
   doc.setFontSize(10);
   doc.setTextColor(150, 150, 150);
   
   const instructionEn = 'Place items in detection zone';
-  const instructionZh = '将物品放置在检测区域内';
-  
   const instrEnWidth = doc.getTextWidth(instructionEn);
-  const instrZhWidth = doc.getTextWidth(instructionZh);
-  
   doc.text(instructionEn, zoneX + (zoneWidth - instrEnWidth) / 2, instructionY);
-  doc.text(instructionZh, zoneX + (zoneWidth - instrZhWidth) / 2, instructionY + 5);
 }
 
 /**
