@@ -197,33 +197,38 @@ async function drawZoneContent(
   
   // Draw HeySalad logo at top of zone (centered)
   // Logo dimensions maintaining aspect ratio (3861:1317 ≈ 2.93:1)
-  const logoWidth = 35; // mm - smaller for inside zone
-  const logoHeight = logoWidth / 2.93; // ~12mm to maintain aspect ratio
+  // Determine if this is a compact layout (2x2) - need smaller elements
+  const isCompact = zoneHeight < 120;
+  
+  // Logo dimensions - scale based on zone size
+  const logoWidth = isCompact ? 28 : 35; // mm
+  const logoHeight = logoWidth / 2.93; // maintain aspect ratio
   const logoX = zoneX + (zoneWidth - logoWidth) / 2;
-  const logoY = zoneY + 5;
+  const logoY = zoneY + 4;
   
   if (logoDataUrl) {
     try {
       doc.addImage(logoDataUrl, 'PNG', logoX, logoY, logoWidth, logoHeight);
     } catch {
       // Fallback to text if image fails
-      doc.setFontSize(14);
+      doc.setFontSize(isCompact ? 11 : 14);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(229, 57, 53);
       doc.text('HeySalad', zoneX + (zoneWidth - 25) / 2, logoY + 8);
     }
   }
   
-  // Calculate QR code position (centered horizontally, below logo)
-  const qrX = zoneX + (zoneWidth - QR_SIZE_MM) / 2;
-  const qrY = logoY + logoHeight + 5;
+  // QR code - scale for compact layout
+  const qrSize = isCompact ? 35 : QR_SIZE_MM;
+  const qrX = zoneX + (zoneWidth - qrSize) / 2;
+  const qrY = logoY + logoHeight + 3;
   
   // Add QR code image
-  doc.addImage(qrDataUrl, 'PNG', qrX, qrY, QR_SIZE_MM, QR_SIZE_MM);
+  doc.addImage(qrDataUrl, 'PNG', qrX, qrY, qrSize, qrSize);
   
   // Add station name below QR code
-  const textY = qrY + QR_SIZE_MM + 8;
-  doc.setFontSize(12);
+  const textY = qrY + qrSize + 5;
+  doc.setFontSize(isCompact ? 10 : 12);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(0, 0, 0);
   
@@ -233,28 +238,28 @@ async function drawZoneContent(
   doc.text(station.name, nameX, textY);
   
   // Add English instruction label
-  doc.setFontSize(9);
+  doc.setFontSize(isCompact ? 7 : 9);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(100, 100, 100);
   
   const labelEn = 'Scan QR code for quality check';
   const labelEnWidth = doc.getTextWidth(labelEn);
-  doc.text(labelEn, zoneX + (zoneWidth - labelEnWidth) / 2, textY + 7);
+  doc.text(labelEn, zoneX + (zoneWidth - labelEnWidth) / 2, textY + 5);
   
   // Add Chinese instruction as image (to support Chinese characters)
   const labelZh = '扫描二维码进行质检';
-  const zhImageDataUrl = renderTextAsImage(labelZh, 16, '#666666');
+  const zhFontSize = isCompact ? 12 : 16;
+  const zhImageDataUrl = renderTextAsImage(labelZh, zhFontSize, '#666666');
   if (zhImageDataUrl) {
-    // Calculate centered position (image is ~80px wide at 16px font)
-    const zhWidth = 32; // mm width in PDF
-    const zhHeight = 5; // mm height in PDF
+    const zhWidth = isCompact ? 24 : 32; // mm width in PDF
+    const zhHeight = isCompact ? 4 : 5; // mm height in PDF
     const zhX = zoneX + (zoneWidth - zhWidth) / 2;
-    doc.addImage(zhImageDataUrl, 'PNG', zhX, textY + 9, zhWidth, zhHeight);
+    doc.addImage(zhImageDataUrl, 'PNG', zhX, textY + 7, zhWidth, zhHeight);
   }
   
   // Add "Place items here" instruction at bottom of zone
-  const instructionY = zoneY + zoneHeight - 15;
-  doc.setFontSize(10);
+  const instructionY = zoneY + zoneHeight - (isCompact ? 10 : 12);
+  doc.setFontSize(isCompact ? 8 : 10);
   doc.setTextColor(150, 150, 150);
   
   const instructionEn = 'Place items in detection zone';
@@ -263,12 +268,13 @@ async function drawZoneContent(
   
   // Add Chinese instruction for placement
   const instrZh = '将物品放置在检测区域内';
-  const instrZhImageDataUrl = renderTextAsImage(instrZh, 16, '#999999');
+  const instrZhFontSize = isCompact ? 12 : 16;
+  const instrZhImageDataUrl = renderTextAsImage(instrZh, instrZhFontSize, '#999999');
   if (instrZhImageDataUrl) {
-    const instrZhWidth = 42; // mm width in PDF
-    const instrZhHeight = 5; // mm height in PDF
+    const instrZhWidth = isCompact ? 32 : 42; // mm width in PDF
+    const instrZhHeight = isCompact ? 4 : 5; // mm height in PDF
     const instrZhX = zoneX + (zoneWidth - instrZhWidth) / 2;
-    doc.addImage(instrZhImageDataUrl, 'PNG', instrZhX, instructionY + 3, instrZhWidth, instrZhHeight);
+    doc.addImage(instrZhImageDataUrl, 'PNG', instrZhX, instructionY + 4, instrZhWidth, instrZhHeight);
   }
 }
 
